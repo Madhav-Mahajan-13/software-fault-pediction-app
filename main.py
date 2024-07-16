@@ -1,17 +1,11 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from imblearn.over_sampling import SMOTE, ADASYN
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.combine import SMOTEENN
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neural_network import MLPClassifier
 
 
 class DataAnalysisApp:
@@ -27,6 +21,14 @@ class DataAnalysisApp:
         "Genetic Algorithm + Neural Network"
     ]
 
+    sampling_methods = [
+        "Over sampling",
+        "Under sampling",
+        "SMOTE",
+        "ADASYN",
+        "SMOTE + ADASYN"
+    ]
+
     def __init__(self, root):
         self.root = root
         self.root.title("Data Analysis App")
@@ -38,29 +40,50 @@ class DataAnalysisApp:
         self.sampling_option = tk.StringVar()
         self.selected_model = tk.StringVar()
 
+        # Styling
+        style = ttk.Style()
+        style.configure("TButton", font=("Helvetica", 10))
+        style.configure("TLabel", font=("Helvetica", 10))
+        style.configure("TCheckbutton", font=("Helvetica", 10))
+        style.configure("TOptionMenu", font=("Helvetica", 10))
+        style.configure("TFrame", padding="10")
+        style.configure("TEntry", font=("Helvetica", 10))
+
+        # Main Frame
+        main_frame = ttk.Frame(self.root)
+        main_frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
+
         # UI Elements
-        self.label_train_files = tk.Label(self.root, text="Upload CSV Files for Training:")
-        self.button_browse_train = tk.Button(self.root, text="Browse", command=self.browse_train_files)
-        self.label_test_file = tk.Label(self.root, text="Select CSV File for Testing:")
-        self.button_browse_test = tk.Button(self.root, text="Browse", command=self.browse_test_file)
-        self.check_sampling = tk.Checkbutton(self.root, text="Perform Sampling if Imbalanced", variable=self.sampling_needed)
-        self.option_sampling = tk.OptionMenu(self.root, self.sampling_option, *["Over sampling", "Under sampling", "SMOTE", "ADASYN", "SMOTE + ADASYN"])
-        self.label_model = tk.Label(self.root, text="Select Model:")
-        self.option_model = tk.OptionMenu(self.root, self.selected_model, *self.model_options)
-        self.button_train = tk.Button(self.root, text="Train Model", command=self.train_model)
-        self.button_compare = tk.Button(self.root, text="Compare Models", command=self.compare_models)
+        label_train_files = ttk.Label(main_frame, text="Upload CSV Files for Training:")
+        button_browse_train = ttk.Button(main_frame, text="Browse", command=self.browse_train_files)
+
+        label_test_file = ttk.Label(main_frame, text="Select CSV File for Testing:")
+        button_browse_test = ttk.Button(main_frame, text="Browse", command=self.browse_test_file)
+
+        check_sampling = ttk.Checkbutton(main_frame, text="Perform Sampling if Imbalanced", variable=self.sampling_needed)
+        option_sampling = ttk.OptionMenu(main_frame, self.sampling_option, *self.sampling_methods)
+
+        label_model = ttk.Label(main_frame, text="Select Model:")
+        option_model = ttk.OptionMenu(main_frame, self.selected_model, *self.model_options)
+
+        button_train = ttk.Button(main_frame, text="Train Model", command=self.train_model)
+        button_compare = ttk.Button(main_frame, text="Compare Models", command=self.compare_models)
 
         # Layout
-        self.label_train_files.grid(row=0, column=0, padx=10, pady=10)
-        self.button_browse_train.grid(row=0, column=1, padx=10, pady=10)
-        self.label_test_file.grid(row=1, column=0, padx=10, pady=10)
-        self.button_browse_test.grid(row=1, column=1, padx=10, pady=10)
-        self.check_sampling.grid(row=2, columnspan=2, padx=10, pady=10, sticky=tk.W)
-        self.option_sampling.grid(row=3, columnspan=2, padx=10, pady=10, sticky=tk.W)
-        self.label_model.grid(row=4, column=0, padx=10, pady=10)
-        self.option_model.grid(row=4, column=1, padx=10, pady=10)
-        self.button_train.grid(row=5, columnspan=2, padx=10, pady=10)
-        self.button_compare.grid(row=6, columnspan=2, padx=10, pady=10)
+        label_train_files.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        button_browse_train.grid(row=0, column=1, padx=10, pady=5, sticky=tk.W)
+
+        label_test_file.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        button_browse_test.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
+
+        check_sampling.grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
+        option_sampling.grid(row=2, column=1, padx=10, pady=5, sticky=tk.W)
+
+        label_model.grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
+        option_model.grid(row=3, column=1, padx=10, pady=5, sticky=tk.W)
+
+        button_train.grid(row=4, column=0, padx=10, pady=20, sticky=tk.W)
+        button_compare.grid(row=4, column=1, padx=10, pady=20, sticky=tk.W)
 
     def browse_train_files(self):
         self.training_files = filedialog.askopenfilenames(filetypes=[("CSV Files", "*.csv")])
@@ -89,21 +112,32 @@ class DataAnalysisApp:
             for df in dfs_train[1:]:
                 common_columns.intersection_update(df.columns)
 
-            # Select common features for training
-            feature_name = list(common_columns)[0] if common_columns else None
+            if not common_columns:
+                messagebox.showerror("Error", "No common columns found in the training datasets.")
+                return
 
-            X_train = pd.concat([df[feature_name] for df in dfs_train], axis=1)
-            y_train = dfs_train[0][feature_name]
+            common_columns = list(common_columns)
+            # Merge training data
+            merged_train_df = pd.concat([df[common_columns] for df in dfs_train])
 
             # Handle missing values in training data
-            X_train = X_train.fillna(X_train.mean())  # Replace NaN with mean (you can use other strategies as well)
+            merged_train_df.fillna(merged_train_df.mean(), inplace=True)
+
+            # Select features and target
+            feature_columns = merged_train_df.columns[:-1]  # Assuming the last column is the target
+            target_column = merged_train_df.columns[-1]
+
+            X_train = merged_train_df[feature_columns]
+            y_train = merged_train_df[target_column]
 
             # Load test data
             df_test = pd.read_csv(self.test_file)
-            X_test = df_test[feature_name]
+            df_test = df_test[common_columns]  # Ensure test data has the same columns
 
             # Handle missing values in test data
-            X_test = X_test.fillna(X_test.mean())  # Replace NaN with mean (you can use other strategies as well)
+            df_test.fillna(df_test.mean(), inplace=True)
+
+            X_test = df_test[feature_columns]
 
             # Perform sampling if needed
             if self.sampling_needed.get():
@@ -137,7 +171,7 @@ class DataAnalysisApp:
                 rf_pred = rf_model.predict(X_test)
                 gb_pred = gb_model.predict(X_test)
 
-                messagebox.showinfo("Model Evaluation", f"Random Forest Accuracy: {accuracy_score(df_test[feature_name], rf_pred):.2f}\nGradient Boosting Accuracy: {accuracy_score(df_test[feature_name], gb_pred):.2f}")
+                messagebox.showinfo("Model Evaluation", f"Random Forest Accuracy: {accuracy_score(y_train, rf_pred):.2f}\nGradient Boosting Accuracy: {accuracy_score(y_train, gb_pred):.2f}")
 
             # Implement other models similarly
 
