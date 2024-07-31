@@ -1,4 +1,4 @@
-# Data Analysis App
+# Software Fault Prediction App
 
 ## Overview
 The Data Analysis App is a powerful GUI tool designed for data scientists, analysts, and machine learning enthusiasts. It simplifies complex data analysis workflows by providing an intuitive interface for data preprocessing, sampling, and machine learning tasks.
