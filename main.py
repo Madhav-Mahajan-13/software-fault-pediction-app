@@ -171,10 +171,17 @@ class DataAnalysisApp:
                 rf_pred = rf_model.predict(X_test)
                 gb_pred = gb_model.predict(X_test)
 
-                messagebox.showinfo("Model Evaluation", f"Random Forest Accuracy: {accuracy_score(y_train, rf_pred):.2f}\nGradient Boosting Accuracy: {accuracy_score(y_train, gb_pred):.2f}")
+                messagebox.showinfo("Model Evaluation",
+                                    f"Random Forest Accuracy: {accuracy_score(y_train, rf_pred):.2f}\nGradient Boosting Accuracy: {accuracy_score(y_train, gb_pred):.2f}")
 
             # Implement other models similarly
 
+        except ValueError as ve:
+            if "Expected n_neighbors" in str(ve):
+                messagebox.showerror("Error",
+                                     f"Error occurred: {str(ve)}. Reduce the number of neighbors or increase the dataset size.")
+            else:
+                messagebox.showerror("Error", f"Error occurred: {str(ve)}")
         except Exception as e:
             messagebox.showerror("Error", f"Error occurred: {str(e)}")
 
